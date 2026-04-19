@@ -5,6 +5,7 @@ import FiltersBar from './components/FiltersBar';
 import CategorySummary from './components/CategorySummary';
 import DataControls from './components/DataControls';
 import MonthNavigation from './components/MonthNavigation';
+import MonthInsights from './components/MonthInsights';
 import SummaryPanel from './components/SummaryPanel';
 import TerminalHeader from './components/TerminalHeader';
 import YearSummary from './components/YearSummary';
@@ -155,6 +156,23 @@ function escapeCsvValue(value) {
   return `"${stringValue.replaceAll('"', '""')}"`;
 }
 
+function formatDelta(value) {
+  if (value === 0) {
+    return '0%';
+  }
+
+  const sign = value > 0 ? '+' : '';
+  return `${sign}${value.toFixed(1)}%`;
+}
+
+function calculatePercentChange(current, previous) {
+  if (previous === 0) {
+    return current === 0 ? 0 : 100;
+  }
+
+  return ((current - previous) / Math.abs(previous)) * 100;
+}
+
 export default function App() {
   const amountInputRef = useRef(null);
   const [expenses, setExpenses] = useState(() => {
@@ -270,6 +288,13 @@ export default function App() {
 
   const selectedMonthLabel = useMemo(() => getMonthLabel(selectedMonth), [selectedMonth]);
   const selectedYear = selectedMonth.slice(0, 4);
+  const previousMonth = useMemo(() => shiftMonth(selectedMonth, -1), [selectedMonth]);
+  const previousMonthLabel = useMemo(() => getMonthLabel(previousMonth), [previousMonth]);
+
+  const previousMonthEntries = useMemo(
+    () => expenses.filter((expense) => expense.date.startsWith(previousMonth)),
+    [expenses, previousMonth],
+  );
 
   const summary = useMemo(() => {
     const monthBounds = getMonthBounds(selectedMonth);
@@ -370,6 +395,149 @@ export default function App() {
       rows,
     };
   }, [monthEntries, selectedMonthLabel]);
+
+  const monthInsights = useMemo(() => {
+    const currentIncome = sumByType(monthEntries, 'income');
+    const currentExpense = sumByType(monthEntries, 'expense');
+    const currentBalance = currentIncome - currentExpense;
+
+    const previousIncome = sumByType(previousMonthEntries, 'income');
+    const previousExpense = sumByType(previousMonthEntries, 'expense');
+    const previousBalance = previousIncome - previousExpense;
+
+    const currentCount = monthEntries.length;
+    const previousCount = previousMonthEntries.length;
+
+    const comparison = [
+      {
+        key: 'expense',
+        label: 'расходы',
+        current: formatMoney(-currentExpense),
+        previous: formatMoney(-previousExpense),
+        delta: formatDelta(calculatePercentChange(currentExpense, previousExpense)),
+      },
+      {
+        key: 'income',
+        label: 'доходы',
+        current: formatMoney(currentIncome),
+        previous: formatMoney(previousIncome),
+        delta: formatDelta(calculatePercentChange(currentIncome, previousIncome)),
+      },
+      {
+        key: 'balance',
+        label: 'баланс',
+        current: formatMoney(currentBalance),
+        previous: formatMoney(previousBalance),
+        delta: formatDelta(calculatePercentChange(currentBalance, previousBalance)),
+      },
+      {
+        key: 'count',
+        label: 'записи',
+        current: String(currentCount),
+        previous: String(previousCount),
+        delta: formatDelta(calculatePercentChange(currentCount, previousCount)),
+      },
+    ];
+
+    const currentExpenseByCategory = monthEntries
+      .filter((entry) => entry.type === 'expense')
+      .reduce((map, entry) => {
+        map.set(entry.category, (map.get(entry.category) || 0) + entry.amount);
+        return map;
+      }, new Map());
+
+    const previousExpenseByCategory = previousMonthEntries
+      .filter((entry) => entry.type === 'expense')
+      .reduce((map, entry) => {
+        map.set(entry.category, (map.get(entry.category) || 0) + entry.amount);
+        return map;
+      }, new Map());
+
+    const topCurrentCategory = Array.from(currentExpenseByCategory.entries()).sort(
+      (left, right) => right[1] - left[1],
+    )[0];
+    const topPreviousCategory = Array.from(previousExpenseByCategory.entries()).sort(
+      (left, right) => right[1] - left[1],
+    )[0];
+
+    const currentCategoryKeys = new Set([
+      ...currentExpenseByCategory.keys(),
+      ...previousExpenseByCategory.keys(),
+    ]);
+
+    let biggestGrowth = null;
+
+    for (const category of currentCategoryKeys) {
+      const currentValue = currentExpenseByCategory.get(category) || 0;
+      const previousValue = previousExpenseByCategory.get(category) || 0;
+      const diff = currentValue - previousValue;
+
+      if (diff <= 0) {
+        continue;
+      }
+
+      if (!biggestGrowth || diff > biggestGrowth.diff) {
+        biggestGrowth = { category, diff };
+      }
+    }
+
+    const observations = [];
+
+    if (currentExpense > previousExpense) {
+      observations.push(
+        `Расходы выше, чем в ${previousMonthLabel}: ${formatMoney(
+          -(currentExpense - previousExpense),
+        )}.`,
+      );
+    } else if (currentExpense < previousExpense) {
+      observations.push(
+        `Расходы ниже, чем в ${previousMonthLabel}: ${formatMoney(
+          previousExpense - currentExpense,
+        )}.`,
+      );
+    }
+
+    if (currentIncome > previousIncome) {
+      observations.push(
+        `Доходы выросли относительно ${previousMonthLabel}: ${formatMoney(
+          currentIncome - previousIncome,
+        )}.`,
+      );
+    } else if (currentIncome < previousIncome) {
+      observations.push(
+        `Доходы снизились относительно ${previousMonthLabel}: ${formatMoney(
+          -(previousIncome - currentIncome),
+        )}.`,
+      );
+    }
+
+    if (topCurrentCategory) {
+      observations.push(
+        `Главная расходная категория месяца: ${topCurrentCategory[0]} (${formatMoney(
+          -topCurrentCategory[1],
+        )}).`,
+      );
+    }
+
+    if (biggestGrowth) {
+      observations.push(
+        `Самый заметный рост трат: ${biggestGrowth.category} (${formatMoney(
+          -biggestGrowth.diff,
+        )} к прошлому месяцу).`,
+      );
+    }
+
+    if (!topPreviousCategory && previousMonthEntries.length === 0) {
+      observations.push(`В ${previousMonthLabel} нет данных для полноценного сравнения.`);
+    }
+
+    return {
+      currentMonthLabel: selectedMonthLabel,
+      previousMonthLabel,
+      comparison,
+      observations: observations.slice(0, 4),
+    };
+  }, [monthEntries, previousMonthEntries, previousMonthLabel, selectedMonthLabel]);
 
   function handleAddExpense(payload) {
     setExpenses((current) => [normalizeExpense(payload), ...current]);
@@ -494,6 +662,7 @@ export default function App() {
             />
           </div>
         </section>
+        <MonthInsights insights={monthInsights} />
         <CategorySummary summary={categorySummary} />
         <YearSummary summary={yearSummary} />
         <DataControls

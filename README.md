@@ -37,6 +37,8 @@
   - по текстовому поиску
 - таблица операций за выбранный месяц
 - inline-редактирование записи прямо в таблице
+- сравнение с прошлым месяцем
+- автоматические наблюдения по изменениям месяца
 - итог по категориям за выбранный месяц
 - годовая сводка по выбранному году:
   - доходы по месяцам
@@ -64,6 +66,7 @@
 - CSV экспортируется только за выбранный месяц
 - поиск работает по категории и заметке внутри текущего месяца
 - редактирование записи делается прямо в таблице без модальных окон
+- в месячном обзоре видно, что изменилось относительно прошлого месяца
 - в форме видно:
   - какой месяц сейчас открыт
   - в какой месяц попадет новая запись
@@ -83,6 +86,7 @@
 - [src/components/ExpenseForm.jsx](/root/sandbox/expense-terminal-app/src/components/ExpenseForm.jsx) — быстрый ввод операции
 - [src/components/FiltersBar.jsx](/root/sandbox/expense-terminal-app/src/components/FiltersBar.jsx) — фильтры и поиск внутри месяца
 - [src/components/ExpenseTable.jsx](/root/sandbox/expense-terminal-app/src/components/ExpenseTable.jsx) — журнал операций и inline-редактирование
+- [src/components/MonthInsights.jsx](/root/sandbox/expense-terminal-app/src/components/MonthInsights.jsx) — сравнение месяца с предыдущим и ключевые наблюдения
 - [src/components/CategorySummary.jsx](/root/sandbox/expense-terminal-app/src/components/CategorySummary.jsx) — итог по категориям за выбранный месяц
 - [src/components/SummaryPanel.jsx](/root/sandbox/expense-terminal-app/src/components/SummaryPanel.jsx) — краткая сводка по месяцу
 - [src/components/YearSummary.jsx](/root/sandbox/expense-terminal-app/src/components/YearSummary.jsx) — годовая табличная сводка
