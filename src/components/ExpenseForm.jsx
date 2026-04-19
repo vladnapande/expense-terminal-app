@@ -1,23 +1,42 @@
 import { useRef, useState } from 'react';
 
-const initialForm = {
-  type: 'expense',
-  amount: '',
-  category: '',
-  date: new Date().toISOString().slice(0, 10),
-  note: '',
-};
+function createInitialForm(todayIso) {
+  return {
+    type: 'expense',
+    amount: '',
+    category: '',
+    date: todayIso,
+    note: '',
+  };
+}
 
 const categoryPresets = {
   expense: ['Еда', 'Транспорт', 'Дом', 'Подписки', 'Здоровье', 'Прочее'],
   income: ['Зарплата', 'Фриланс', 'Возврат', 'Продажа', 'Подарок', 'Прочее'],
 };
 
-export default function ExpenseForm({ amountInputRef, onSubmit }) {
-  const [form, setForm] = useState(initialForm);
+function getMonthLabel(monthValue) {
+  const [year, month] = monthValue.split('-').map(Number);
+
+  return new Intl.DateTimeFormat('ru-RU', {
+    month: 'long',
+    year: 'numeric',
+  }).format(new Date(year, month - 1, 1));
+}
+
+export default function ExpenseForm({
+  amountInputRef,
+  selectedMonth,
+  selectedMonthLabel,
+  todayIso,
+  onSubmit,
+}) {
+  const [form, setForm] = useState(() => createInitialForm(todayIso));
   const categoryInputRef = useRef(null);
   const dateInputRef = useRef(null);
   const noteInputRef = useRef(null);
+  const entryMonthLabel = getMonthLabel(form.date.slice(0, 7));
+  const isOutsideViewedMonth = form.date.slice(0, 7) !== selectedMonth;
 
   function handleChange(event) {
     const { name, value } = event.target;
@@ -82,7 +101,7 @@ export default function ExpenseForm({ amountInputRef, onSubmit }) {
 
     onSubmit(form);
     setForm((current) => ({
-      ...initialForm,
+      ...createInitialForm(todayIso),
       type: current.type,
       date: current.date,
       category: current.category,
@@ -97,7 +116,10 @@ export default function ExpenseForm({ amountInputRef, onSubmit }) {
         новая запись
       </div>
       <div className="border-b border-terminal-line px-4 py-2 text-[11px] uppercase tracking-[0.18em] text-terminal-muted/80">
-        enter: следующее поле | ctrl+k или /: сумма | esc: сброс фильтров
+        enter: следующее поле | ctrl+k или /: сумма | esc: текущий месяц
+      </div>
+      <div className="border-b border-terminal-line px-4 py-2 text-[11px] uppercase tracking-[0.18em] text-terminal-muted/80">
+        открыт месяц: {selectedMonthLabel} | дата по умолчанию: {todayIso}
       </div>
       <form onSubmit={handleSubmit} className="flex flex-col gap-4 px-4 py-4">
         <div className="grid grid-cols-2 gap-2">
@@ -186,6 +208,14 @@ export default function ExpenseForm({ amountInputRef, onSubmit }) {
             className="h-11 border border-terminal-line bg-black/20 px-3 text-base text-terminal-strong outline-none transition focus:border-terminal-text"
           />
         </label>
+        <p
+          className={`text-[11px] uppercase tracking-[0.16em] ${
+            isOutsideViewedMonth ? 'text-terminal-danger' : 'text-terminal-muted'
+          }`}
+        >
+          запись попадет в: {entryMonthLabel}
+          {isOutsideViewedMonth ? ' | не в текущий просмотр' : ' | видна сразу в таблице'}
+        </p>
 
         <label className="flex flex-col gap-2 text-xs uppercase tracking-[0.22em] text-terminal-muted">
           <span>заметка</span>

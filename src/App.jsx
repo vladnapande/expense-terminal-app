@@ -2,44 +2,98 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import ExpenseForm from './components/ExpenseForm';
 import ExpenseTable from './components/ExpenseTable';
 import FiltersBar from './components/FiltersBar';
+import MonthNavigation from './components/MonthNavigation';
 import SummaryPanel from './components/SummaryPanel';
 import TerminalHeader from './components/TerminalHeader';
+import YearSummary from './components/YearSummary';
 
 const STORAGE_KEY = 'expense-terminal-records';
+const RU_MONTH_FORMAT = new Intl.DateTimeFormat('ru-RU', {
+  month: 'long',
+  year: 'numeric',
+});
+const RU_MONTH_SHORT_FORMAT = new Intl.DateTimeFormat('ru-RU', {
+  month: 'short',
+});
 
-const todayIso = new Date().toISOString().slice(0, 10);
-const currentMonth = todayIso.slice(0, 7);
+function getTodayIso() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
 
-const demoExpenses = [
-  {
-    id: 'seed-1',
-    amount: 18.5,
-    type: 'expense',
-    category: 'Еда',
-    date: todayIso,
-    note: 'кофе',
-  },
-  {
-    id: 'seed-2',
-    amount: 64,
-    type: 'expense',
-    category: 'Транспорт',
-    date: currentMonth + '-03',
-    note: 'метро',
-  },
-  {
-    id: 'seed-3',
-    amount: 3200,
-    type: 'income',
-    category: 'Зарплата',
-    date: currentMonth + '-08',
-    note: 'аванс',
-  },
-];
+  return `${year}-${month}-${day}`;
+}
+
+function getCurrentMonthValue() {
+  return getTodayIso().slice(0, 7);
+}
+
+function buildDemoExpenses() {
+  const todayIso = getTodayIso();
+  const currentMonth = getCurrentMonthValue();
+
+  return [
+    {
+      id: 'seed-1',
+      amount: 18.5,
+      type: 'expense',
+      category: 'Еда',
+      date: todayIso,
+      note: 'кофе',
+    },
+    {
+      id: 'seed-2',
+      amount: 64,
+      type: 'expense',
+      category: 'Транспорт',
+      date: `${currentMonth}-03`,
+      note: 'метро',
+    },
+    {
+      id: 'seed-3',
+      amount: 3200,
+      type: 'income',
+      category: 'Зарплата',
+      date: `${currentMonth}-08`,
+      note: 'аванс',
+    },
+  ];
+}
 
 function formatMoney(value) {
   const sign = value > 0 ? '+' : value < 0 ? '-' : '';
   return `${sign}₽${Math.abs(value).toFixed(2)}`;
+}
+
+function getMonthDate(monthValue) {
+  const [year, month] = monthValue.split('-').map(Number);
+  return new Date(year, month - 1, 1);
+}
+
+function getMonthLabel(monthValue) {
+  return RU_MONTH_FORMAT.format(getMonthDate(monthValue));
+}
+
+function getMonthShortLabel(monthValue) {
+  return RU_MONTH_SHORT_FORMAT.format(getMonthDate(monthValue)).replace('.', '');
+}
+
+function shiftMonth(monthValue, delta) {
+  const [year, month] = monthValue.split('-').map(Number);
+  const nextDate = new Date(year, month - 1 + delta, 1);
+  const nextYear = nextDate.getFullYear();
+  const nextMonth = String(nextDate.getMonth() + 1).padStart(2, '0');
+
+  return `${nextYear}-${nextMonth}`;
+}
+
+function getMonthBounds(monthValue) {
+  const [year, month] = monthValue.split('-').map(Number);
+  const start = new Date(year, month - 1, 1);
+  const end = new Date(year, month, 0);
+
+  return { start, end };
 }
 
 function normalizeStoredExpense(item) {
@@ -48,7 +102,7 @@ function normalizeStoredExpense(item) {
     amount: Number(item.amount) || 0,
     type: item.type === 'income' ? 'income' : 'expense',
     category: item.category?.trim() || 'Прочее',
-    date: item.date || todayIso,
+    date: item.date || getTodayIso(),
     note: item.note?.trim() || '',
   };
 }
@@ -64,16 +118,17 @@ function normalizeExpense(payload) {
   };
 }
 
-function getMonthBounds(monthValue) {
-  if (!monthValue) {
-    return null;
-  }
+function sumByType(entries, type) {
+  return entries
+    .filter((entry) => entry.type === type)
+    .reduce((sum, entry) => sum + entry.amount, 0);
+}
 
-  const [year, month] = monthValue.split('-').map(Number);
-  const start = new Date(year, month - 1, 1);
-  const end = new Date(year, month, 0);
-
-  return { start, end };
+function getYearMonths(year) {
+  return Array.from({ length: 12 }, (_, index) => {
+    const month = String(index + 1).padStart(2, '0');
+    return `${year}-${month}`;
+  });
 }
 
 export default function App() {
@@ -82,27 +137,48 @@ export default function App() {
     const savedExpenses = window.localStorage.getItem(STORAGE_KEY);
 
     if (!savedExpenses) {
-      return demoExpenses;
+      return buildDemoExpenses();
     }
 
     try {
       const parsedExpenses = JSON.parse(savedExpenses);
       return Array.isArray(parsedExpenses)
         ? parsedExpenses.map(normalizeStoredExpense)
-        : demoExpenses;
+        : buildDemoExpenses();
     } catch {
-      return demoExpenses;
+      return buildDemoExpenses();
     }
   });
+  const [selectedMonth, setSelectedMonth] = useState(getCurrentMonthValue());
+  const [systemMonth, setSystemMonth] = useState(getCurrentMonthValue());
   const [filters, setFilters] = useState({
     type: 'all',
     category: 'Все',
-    month: currentMonth,
   });
 
   useEffect(() => {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(expenses));
   }, [expenses]);
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      const nextSystemMonth = getCurrentMonthValue();
+
+      setSystemMonth((previousSystemMonth) => {
+        if (previousSystemMonth !== nextSystemMonth) {
+          setSelectedMonth((currentSelectedMonth) =>
+            currentSelectedMonth === previousSystemMonth
+              ? nextSystemMonth
+              : currentSelectedMonth,
+          );
+        }
+
+        return nextSystemMonth;
+      });
+    }, 60_000);
+
+    return () => window.clearInterval(intervalId);
+  }, []);
 
   useEffect(() => {
     function handleKeydown(event) {
@@ -123,12 +199,11 @@ export default function App() {
       }
 
       if (event.key === 'Escape' && !isTypingTarget) {
-        setFilters((current) => ({
-          ...current,
+        setFilters({
           type: 'all',
           category: 'Все',
-          month: currentMonth,
-        }));
+        });
+        setSelectedMonth(getCurrentMonthValue());
       }
     }
 
@@ -141,67 +216,85 @@ export default function App() {
     return ['Все', ...Array.from(values).sort((left, right) => left.localeCompare(right))];
   }, [expenses]);
 
+  const monthEntries = useMemo(
+    () => expenses.filter((expense) => expense.date.startsWith(selectedMonth)),
+    [expenses, selectedMonth],
+  );
+
   const filteredExpenses = useMemo(() => {
-    return expenses
+    return monthEntries
       .filter((expense) => {
         const matchesType = filters.type === 'all' || expense.type === filters.type;
         const matchesCategory =
           filters.category === 'Все' || expense.category === filters.category;
-        const matchesMonth = !filters.month || expense.date.startsWith(filters.month);
 
-        return matchesType && matchesCategory && matchesMonth;
+        return matchesType && matchesCategory;
       })
       .sort((left, right) => right.date.localeCompare(left.date));
-  }, [expenses, filters]);
+  }, [filters, monthEntries]);
+
+  const selectedMonthLabel = useMemo(() => getMonthLabel(selectedMonth), [selectedMonth]);
+  const selectedYear = selectedMonth.slice(0, 4);
 
   const summary = useMemo(() => {
-    const now = new Date();
-    const today = todayIso;
-    const activeMonth = filters.month || currentMonth;
-    const monthBounds = getMonthBounds(activeMonth);
-    const daysInMonth = monthBounds ? monthBounds.end.getDate() : now.getDate();
-
-    const monthExpenses = expenses.filter((expense) => expense.date.startsWith(activeMonth));
-    const todayEntries = expenses.filter((expense) => expense.date === today);
-
-    const todayIncome = todayEntries
-      .filter((expense) => expense.type === 'income')
-      .reduce((sum, expense) => sum + expense.amount, 0);
-    const todayExpense = todayEntries
-      .filter((expense) => expense.type === 'expense')
-      .reduce((sum, expense) => sum + expense.amount, 0);
-    const monthIncome = monthExpenses
-      .filter((expense) => expense.type === 'income')
-      .reduce((sum, expense) => sum + expense.amount, 0);
-    const monthExpense = monthExpenses
-      .filter((expense) => expense.type === 'expense')
-      .reduce((sum, expense) => sum + expense.amount, 0);
-
-    const todayNet = todayIncome - todayExpense;
+    const monthBounds = getMonthBounds(selectedMonth);
+    const monthIncome = sumByType(monthEntries, 'income');
+    const monthExpense = sumByType(monthEntries, 'expense');
     const monthNet = monthIncome - monthExpense;
-    const avgDay = monthNet / daysInMonth;
+    const avgDay = monthNet / monthBounds.end.getDate();
 
     return [
       {
-        key: 'today',
-        label: 'сегодня',
-        value: formatMoney(todayNet),
-        meta: `приход ${formatMoney(todayIncome)} / расход ${formatMoney(-todayExpense)}`,
+        key: 'income',
+        label: 'доходы месяца',
+        value: formatMoney(monthIncome),
+        meta: selectedMonthLabel,
       },
       {
-        key: 'month',
-        label: 'месяц',
+        key: 'expense',
+        label: 'расходы месяца',
+        value: formatMoney(-monthExpense),
+        meta: `${monthEntries.length} записей`,
+      },
+      {
+        key: 'balance',
+        label: 'баланс месяца',
         value: formatMoney(monthNet),
-        meta: `приход ${formatMoney(monthIncome)} / расход ${formatMoney(-monthExpense)}`,
-      },
-      {
-        key: 'avgDay',
-        label: 'среднее / день',
-        value: formatMoney(avgDay || 0),
-        meta: `${daysInMonth} дн. в месяце`,
+        meta: `среднее / день ${formatMoney(avgDay || 0)}`,
       },
     ];
-  }, [expenses, filters.month]);
+  }, [monthEntries, selectedMonth, selectedMonthLabel]);
+
+  const yearSummary = useMemo(() => {
+    const months = getYearMonths(selectedYear);
+    const rows = months.map((monthValue) => {
+      const entries = expenses.filter((expense) => expense.date.startsWith(monthValue));
+      const income = sumByType(entries, 'income');
+      const expense = sumByType(entries, 'expense');
+      const balance = income - expense;
+
+      return {
+        key: monthValue,
+        label: getMonthShortLabel(monthValue),
+        income,
+        expense,
+        balance,
+      };
+    });
+
+    const yearIncome = rows.reduce((sum, row) => sum + row.income, 0);
+    const yearExpense = rows.reduce((sum, row) => sum + row.expense, 0);
+    const yearBalance = yearIncome - yearExpense;
+
+    return {
+      year: selectedYear,
+      rows,
+      totalIncome: yearIncome,
+      totalExpense: yearExpense,
+      totalBalance: yearBalance,
+      avgMonth: yearBalance / 12,
+    };
+  }, [expenses, selectedYear]);
 
   function handleAddExpense(payload) {
     setExpenses((current) => [normalizeExpense(payload), ...current]);
@@ -222,18 +315,35 @@ export default function App() {
     <main className="min-h-screen bg-terminal-bg px-4 py-6 text-terminal-text sm:px-6 lg:px-8">
       <div className="mx-auto flex max-w-6xl flex-col gap-4">
         <TerminalHeader />
+        <MonthNavigation
+          currentMonth={systemMonth}
+          selectedMonth={selectedMonth}
+          onChangeMonth={setSelectedMonth}
+        />
         <SummaryPanel summary={summary} />
         <section className="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
-          <ExpenseForm amountInputRef={amountInputRef} onSubmit={handleAddExpense} />
+          <ExpenseForm
+            amountInputRef={amountInputRef}
+            selectedMonth={selectedMonth}
+            selectedMonthLabel={selectedMonthLabel}
+            todayIso={getTodayIso()}
+            onSubmit={handleAddExpense}
+          />
           <div className="flex flex-col gap-4">
             <FiltersBar
               categories={categories}
               filters={filters}
+              selectedMonthLabel={selectedMonthLabel}
               onFilterChange={handleFilterChange}
             />
-            <ExpenseTable expenses={filteredExpenses} onDelete={handleDeleteExpense} />
+            <ExpenseTable
+              expenses={filteredExpenses}
+              monthLabel={selectedMonthLabel}
+              onDelete={handleDeleteExpense}
+            />
           </div>
         </section>
+        <YearSummary summary={yearSummary} />
       </div>
     </main>
   );

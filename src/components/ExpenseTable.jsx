@@ -2,11 +2,14 @@ function formatAmount(value) {
   return `₽${value.toFixed(2)}`;
 }
 
-export default function ExpenseTable({ expenses, onDelete }) {
+export default function ExpenseTable({ expenses, monthLabel, onDelete }) {
   return (
     <section className="overflow-hidden border border-terminal-line bg-terminal-panel">
       <div className="border-b border-terminal-line px-4 py-2 text-[11px] uppercase tracking-[0.28em] text-terminal-muted">
         операции
+      </div>
+      <div className="border-b border-terminal-line px-4 py-2 text-[11px] uppercase tracking-[0.18em] text-terminal-muted/80">
+        журнал за {monthLabel}
       </div>
       <div className="overflow-x-auto">
         <table className="min-w-full border-collapse text-sm">
