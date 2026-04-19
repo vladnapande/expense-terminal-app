@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import ExpenseForm from './components/ExpenseForm';
 import ExpenseTable from './components/ExpenseTable';
 import FiltersBar from './components/FiltersBar';
@@ -61,6 +61,7 @@ function getMonthBounds(monthValue) {
 }
 
 export default function App() {
+  const amountInputRef = useRef(null);
   const [expenses, setExpenses] = useState(() => {
     const savedExpenses = window.localStorage.getItem(STORAGE_KEY);
 
@@ -83,6 +84,37 @@ export default function App() {
   useEffect(() => {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(expenses));
   }, [expenses]);
+
+  useEffect(() => {
+    function handleKeydown(event) {
+      const activeTag = document.activeElement?.tagName;
+      const isTypingTarget =
+        activeTag === 'INPUT' || activeTag === 'TEXTAREA' || activeTag === 'SELECT';
+
+      if (event.key === '/' && !isTypingTarget) {
+        event.preventDefault();
+        amountInputRef.current?.focus();
+        amountInputRef.current?.select();
+      }
+
+      if ((event.key === 'k' || event.key === 'K') && event.ctrlKey) {
+        event.preventDefault();
+        amountInputRef.current?.focus();
+        amountInputRef.current?.select();
+      }
+
+      if (event.key === 'Escape' && !isTypingTarget) {
+        setFilters((current) => ({
+          ...current,
+          category: 'All',
+          month: currentMonth,
+        }));
+      }
+    }
+
+    window.addEventListener('keydown', handleKeydown);
+    return () => window.removeEventListener('keydown', handleKeydown);
+  }, []);
 
   const categories = useMemo(() => {
     const values = new Set(expenses.map((expense) => expense.category));
@@ -143,7 +175,7 @@ export default function App() {
         <TerminalHeader />
         <SummaryPanel summary={summary} />
         <section className="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
-          <ExpenseForm onSubmit={handleAddExpense} />
+          <ExpenseForm amountInputRef={amountInputRef} onSubmit={handleAddExpense} />
           <div className="flex flex-col gap-4">
             <FiltersBar
               categories={categories}
