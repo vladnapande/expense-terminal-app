@@ -45,6 +45,7 @@
   - итог за год
   - среднее за месяц
 - экспорт всех данных в `JSON`
+- месячный экспорт в `CSV` для Google Sheets
 - импорт данных из `JSON`
 - явный статус автосохранения
 - удаление записей
@@ -60,6 +61,7 @@
 - `Esc` сбрасывает фильтры и возвращает текущий месяц
 - при любом изменении записей срабатывает автосохранение в `localStorage`
 - в интерфейсе видно время последнего автосохранения
+- CSV экспортируется только за выбранный месяц
 - поиск работает по категории и заметке внутри текущего месяца
 - редактирование записи делается прямо в таблице без модальных окон
 - в форме видно:
@@ -84,7 +86,7 @@
 - [src/components/CategorySummary.jsx](/root/sandbox/expense-terminal-app/src/components/CategorySummary.jsx) — итог по категориям за выбранный месяц
 - [src/components/SummaryPanel.jsx](/root/sandbox/expense-terminal-app/src/components/SummaryPanel.jsx) — краткая сводка по месяцу
 - [src/components/YearSummary.jsx](/root/sandbox/expense-terminal-app/src/components/YearSummary.jsx) — годовая табличная сводка
-- [src/components/DataControls.jsx](/root/sandbox/expense-terminal-app/src/components/DataControls.jsx) — экспорт, импорт и статус автосохранения
+- [src/components/DataControls.jsx](/root/sandbox/expense-terminal-app/src/components/DataControls.jsx) — JSON/CSV экспорт, импорт и статус автосохранения
 - [src/components/TerminalHeader.jsx](/root/sandbox/expense-terminal-app/src/components/TerminalHeader.jsx) — верхняя terminal-панель
 
 ## Локальный запуск

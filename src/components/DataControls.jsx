@@ -4,6 +4,8 @@ export default function DataControls({
   dataMessage,
   dataMessageTone,
   lastSavedAt,
+  selectedMonthLabel,
+  onExportMonthCsv,
   onExport,
   onImport,
 }) {
@@ -34,8 +36,18 @@ export default function DataControls({
       <div className="border-b border-terminal-line px-4 py-2 text-[11px] uppercase tracking-[0.18em] text-terminal-muted/80">
         автосохранение в localStorage при любом изменении записей
       </div>
+      <div className="border-b border-terminal-line px-4 py-2 text-[11px] uppercase tracking-[0.18em] text-terminal-muted/80">
+        csv экспортируется только за выбранный месяц: {selectedMonthLabel}
+      </div>
       <div className="flex flex-col gap-4 px-4 py-4 md:flex-row md:items-center md:justify-between">
         <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={onExportMonthCsv}
+            className="h-11 border border-terminal-line px-4 text-sm uppercase tracking-[0.16em] text-terminal-strong transition hover:bg-terminal-text/5"
+          >
+            [ экспорт csv ]
+          </button>
           <button
             type="button"
             onClick={onExport}

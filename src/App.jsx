@@ -150,6 +150,11 @@ function parseImportedExpenses(rawValue) {
   return parsed.map(normalizeStoredExpense);
 }
 
+function escapeCsvValue(value) {
+  const stringValue = String(value ?? '');
+  return `"${stringValue.replaceAll('"', '""')}"`;
+}
+
 export default function App() {
   const amountInputRef = useRef(null);
   const [expenses, setExpenses] = useState(() => {
@@ -409,6 +414,37 @@ export default function App() {
     setDataMessageTone('success');
   }
 
+  function handleExportMonthCsv() {
+    const csvRows = [
+      ['Дата', 'Тип', 'Категория', 'Заметка', 'Сумма'],
+      ...monthEntries
+        .slice()
+        .sort((left, right) => left.date.localeCompare(right.date))
+        .map((entry) => [
+          entry.date,
+          entry.type === 'income' ? 'Приход' : 'Расход',
+          entry.category,
+          entry.note,
+          entry.type === 'income' ? entry.amount.toFixed(2) : `-${entry.amount.toFixed(2)}`,
+        ]),
+    ];
+
+    const csvContent =
+      '\uFEFF' + csvRows.map((row) => row.map(escapeCsvValue).join(';')).join('\n');
+    const fileName = `expense-terminal-${selectedMonth}-google-sheets.csv`;
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const downloadUrl = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+
+    anchor.href = downloadUrl;
+    anchor.download = fileName;
+    anchor.click();
+
+    URL.revokeObjectURL(downloadUrl);
+    setDataMessage(`Экспортировано в CSV: ${fileName}`);
+    setDataMessageTone('success');
+  }
+
   async function handleImportData(file) {
     if (!file) {
       return;
@@ -464,6 +500,8 @@ export default function App() {
           dataMessage={dataMessage}
           dataMessageTone={dataMessageTone}
           lastSavedAt={formatDateTime(lastSavedAt)}
+          selectedMonthLabel={selectedMonthLabel}
+          onExportMonthCsv={handleExportMonthCsv}
           onExport={handleExportData}
           onImport={handleImportData}
         />
