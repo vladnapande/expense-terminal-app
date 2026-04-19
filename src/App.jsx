@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import ExpenseForm from './components/ExpenseForm';
 import ExpenseTable from './components/ExpenseTable';
 import FiltersBar from './components/FiltersBar';
+import CategorySummary from './components/CategorySummary';
 import DataControls from './components/DataControls';
 import MonthNavigation from './components/MonthNavigation';
 import SummaryPanel from './components/SummaryPanel';
@@ -325,6 +326,46 @@ export default function App() {
     };
   }, [expenses, selectedYear]);
 
+  const categorySummary = useMemo(() => {
+    const grouped = monthEntries.reduce((accumulator, entry) => {
+      const current = accumulator.get(entry.category) || {
+        category: entry.category,
+        income: 0,
+        expense: 0,
+        balance: 0,
+        count: 0,
+      };
+
+      if (entry.type === 'income') {
+        current.income += entry.amount;
+      } else {
+        current.expense += entry.amount;
+      }
+
+      current.balance = current.income - current.expense;
+      current.count += 1;
+      accumulator.set(entry.category, current);
+      return accumulator;
+    }, new Map());
+
+    const rows = Array.from(grouped.values()).sort((left, right) => {
+      if (right.expense !== left.expense) {
+        return right.expense - left.expense;
+      }
+
+      if (right.income !== left.income) {
+        return right.income - left.income;
+      }
+
+      return left.category.localeCompare(right.category);
+    });
+
+    return {
+      monthLabel: selectedMonthLabel,
+      rows,
+    };
+  }, [monthEntries, selectedMonthLabel]);
+
   function handleAddExpense(payload) {
     setExpenses((current) => [normalizeExpense(payload), ...current]);
   }
@@ -417,6 +458,7 @@ export default function App() {
             />
           </div>
         </section>
+        <CategorySummary summary={categorySummary} />
         <YearSummary summary={yearSummary} />
         <DataControls
           dataMessage={dataMessage}
