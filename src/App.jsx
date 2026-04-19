@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import ExpenseForm from './components/ExpenseForm';
 import ExpenseTable from './components/ExpenseTable';
 import FiltersBar from './components/FiltersBar';
+import DataControls from './components/DataControls';
 import MonthNavigation from './components/MonthNavigation';
 import SummaryPanel from './components/SummaryPanel';
 import TerminalHeader from './components/TerminalHeader';
@@ -131,6 +132,23 @@ function getYearMonths(year) {
   });
 }
 
+function formatDateTime(value) {
+  return new Intl.DateTimeFormat('ru-RU', {
+    dateStyle: 'short',
+    timeStyle: 'medium',
+  }).format(value);
+}
+
+function parseImportedExpenses(rawValue) {
+  const parsed = JSON.parse(rawValue);
+
+  if (!Array.isArray(parsed)) {
+    throw new Error('Ожидался JSON-массив записей.');
+  }
+
+  return parsed.map(normalizeStoredExpense);
+}
+
 export default function App() {
   const amountInputRef = useRef(null);
   const [expenses, setExpenses] = useState(() => {
@@ -155,9 +173,13 @@ export default function App() {
     type: 'all',
     category: 'Все',
   });
+  const [lastSavedAt, setLastSavedAt] = useState(() => new Date());
+  const [dataMessage, setDataMessage] = useState('Локальное автосохранение активно.');
+  const [dataMessageTone, setDataMessageTone] = useState('muted');
 
   useEffect(() => {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(expenses));
+    setLastSavedAt(new Date());
   }, [expenses]);
 
   useEffect(() => {
@@ -311,6 +333,39 @@ export default function App() {
     }));
   }
 
+  function handleExportData() {
+    const exportPayload = JSON.stringify(expenses, null, 2);
+    const fileMonth = selectedMonth.replace('-', '_');
+    const fileName = `expense-terminal-${fileMonth}.json`;
+    const blob = new Blob([exportPayload], { type: 'application/json' });
+    const downloadUrl = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+
+    anchor.href = downloadUrl;
+    anchor.download = fileName;
+    anchor.click();
+
+    URL.revokeObjectURL(downloadUrl);
+    setDataMessage(`Экспортировано: ${fileName}`);
+    setDataMessageTone('success');
+  }
+
+  async function handleImportData(file) {
+    if (!file) {
+      return;
+    }
+
+    try {
+      const importedExpenses = parseImportedExpenses(await file.text());
+      setExpenses(importedExpenses);
+      setDataMessage(`Импортировано записей: ${importedExpenses.length}`);
+      setDataMessageTone('success');
+    } catch (error) {
+      setDataMessage(error.message || 'Не удалось импортировать JSON.');
+      setDataMessageTone('danger');
+    }
+  }
+
   return (
     <main className="min-h-screen bg-terminal-bg px-4 py-6 text-terminal-text sm:px-6 lg:px-8">
       <div className="mx-auto flex max-w-6xl flex-col gap-4">
@@ -344,6 +399,13 @@ export default function App() {
           </div>
         </section>
         <YearSummary summary={yearSummary} />
+        <DataControls
+          dataMessage={dataMessage}
+          dataMessageTone={dataMessageTone}
+          lastSavedAt={formatDateTime(lastSavedAt)}
+          onExport={handleExportData}
+          onImport={handleImportData}
+        />
       </div>
     </main>
   );

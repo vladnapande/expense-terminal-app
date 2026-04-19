@@ -41,6 +41,9 @@
   - баланс по месяцам
   - итог за год
   - среднее за месяц
+- экспорт всех данных в `JSON`
+- импорт данных из `JSON`
+- явный статус автосохранения
 - удаление записей
 - сохранение данных между сессиями через `localStorage`
 
@@ -52,6 +55,8 @@
 - после сохранения фокус возвращается на сумму
 - `Ctrl+K` или `/` переводит фокус на поле суммы
 - `Esc` сбрасывает фильтры и возвращает текущий месяц
+- при любом изменении записей срабатывает автосохранение в `localStorage`
+- в интерфейсе видно время последнего автосохранения
 - в форме видно:
   - какой месяц сейчас открыт
   - в какой месяц попадет новая запись
@@ -73,6 +78,7 @@
 - [src/components/ExpenseTable.jsx](/root/sandbox/expense-terminal-app/src/components/ExpenseTable.jsx) — журнал операций за выбранный месяц
 - [src/components/SummaryPanel.jsx](/root/sandbox/expense-terminal-app/src/components/SummaryPanel.jsx) — краткая сводка по месяцу
 - [src/components/YearSummary.jsx](/root/sandbox/expense-terminal-app/src/components/YearSummary.jsx) — годовая табличная сводка
+- [src/components/DataControls.jsx](/root/sandbox/expense-terminal-app/src/components/DataControls.jsx) — экспорт, импорт и статус автосохранения
 - [src/components/TerminalHeader.jsx](/root/sandbox/expense-terminal-app/src/components/TerminalHeader.jsx) — верхняя terminal-панель
 
 ## Локальный запуск
