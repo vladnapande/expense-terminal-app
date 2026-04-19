@@ -1,38 +1,47 @@
 function formatAmount(value) {
-  return `$${value.toFixed(2)}`;
+  return `₽${value.toFixed(2)}`;
 }
 
 export default function ExpenseTable({ expenses, onDelete }) {
   return (
     <section className="overflow-hidden border border-terminal-line bg-terminal-panel">
       <div className="border-b border-terminal-line px-4 py-2 text-[11px] uppercase tracking-[0.28em] text-terminal-muted">
-        ledger.entries
+        операции
       </div>
       <div className="overflow-x-auto">
         <table className="min-w-full border-collapse text-sm">
           <thead className="text-left text-[11px] uppercase tracking-[0.24em] text-terminal-muted">
             <tr className="border-b border-terminal-line">
-              <th className="px-4 py-3 font-normal">date</th>
-              <th className="px-4 py-3 font-normal">category</th>
-              <th className="px-4 py-3 font-normal">note</th>
-              <th className="px-4 py-3 font-normal text-right">amount</th>
-              <th className="px-4 py-3 font-normal text-right">rm</th>
+              <th className="px-4 py-3 font-normal">дата</th>
+              <th className="px-4 py-3 font-normal">тип</th>
+              <th className="px-4 py-3 font-normal">категория</th>
+              <th className="px-4 py-3 font-normal">заметка</th>
+              <th className="px-4 py-3 font-normal text-right">сумма</th>
+              <th className="px-4 py-3 font-normal text-right">удалить</th>
             </tr>
           </thead>
           <tbody>
             {expenses.length === 0 ? (
               <tr>
-                <td colSpan="5" className="px-4 py-10 text-center uppercase tracking-[0.18em] text-terminal-muted">
-                  no records for current filter
+                <td colSpan="6" className="px-4 py-10 text-center uppercase tracking-[0.18em] text-terminal-muted">
+                  нет записей под текущий фильтр
                 </td>
               </tr>
             ) : (
               expenses.map((expense) => (
                 <tr key={expense.id} className="border-b border-terminal-line/70 last:border-b-0">
                   <td className="px-4 py-3 text-terminal-muted">{expense.date}</td>
+                  <td className="px-4 py-3 uppercase text-terminal-muted">
+                    {expense.type === 'income' ? 'приход' : 'расход'}
+                  </td>
                   <td className="px-4 py-3 uppercase text-terminal-strong">{expense.category}</td>
-                  <td className="px-4 py-3 text-terminal-text/80">{expense.note || 'n/a'}</td>
-                  <td className="px-4 py-3 text-right text-terminal-strong">
+                  <td className="px-4 py-3 text-terminal-text/80">{expense.note || '—'}</td>
+                  <td
+                    className={`px-4 py-3 text-right ${
+                      expense.type === 'income' ? 'text-terminal-text' : 'text-terminal-strong'
+                    }`}
+                  >
+                    {expense.type === 'income' ? '+' : '-'}
                     {formatAmount(expense.amount)}
                   </td>
                   <td className="px-4 py-3 text-right">

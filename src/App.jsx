@@ -14,35 +14,51 @@ const demoExpenses = [
   {
     id: 'seed-1',
     amount: 18.5,
-    category: 'Food',
+    type: 'expense',
+    category: 'Еда',
     date: todayIso,
-    note: 'coffee.beans',
+    note: 'кофе',
   },
   {
     id: 'seed-2',
     amount: 64,
-    category: 'Transport',
+    type: 'expense',
+    category: 'Транспорт',
     date: currentMonth + '-03',
-    note: 'metro.topup',
+    note: 'метро',
   },
   {
     id: 'seed-3',
-    amount: 120,
-    category: 'Tools',
+    amount: 3200,
+    type: 'income',
+    category: 'Зарплата',
     date: currentMonth + '-08',
-    note: 'domain.renewal',
+    note: 'аванс',
   },
 ];
 
 function formatMoney(value) {
-  return `$${value.toFixed(2)}`;
+  const sign = value > 0 ? '+' : value < 0 ? '-' : '';
+  return `${sign}₽${Math.abs(value).toFixed(2)}`;
+}
+
+function normalizeStoredExpense(item) {
+  return {
+    id: item.id || crypto.randomUUID(),
+    amount: Number(item.amount) || 0,
+    type: item.type === 'income' ? 'income' : 'expense',
+    category: item.category?.trim() || 'Прочее',
+    date: item.date || todayIso,
+    note: item.note?.trim() || '',
+  };
 }
 
 function normalizeExpense(payload) {
   return {
     id: crypto.randomUUID(),
     amount: Number(payload.amount),
-    category: payload.category.trim() || 'Other',
+    type: payload.type === 'income' ? 'income' : 'expense',
+    category: payload.category.trim() || 'Прочее',
     date: payload.date,
     note: payload.note.trim(),
   };
@@ -71,13 +87,16 @@ export default function App() {
 
     try {
       const parsedExpenses = JSON.parse(savedExpenses);
-      return Array.isArray(parsedExpenses) ? parsedExpenses : demoExpenses;
+      return Array.isArray(parsedExpenses)
+        ? parsedExpenses.map(normalizeStoredExpense)
+        : demoExpenses;
     } catch {
       return demoExpenses;
     }
   });
   const [filters, setFilters] = useState({
-    category: 'All',
+    type: 'all',
+    category: 'Все',
     month: currentMonth,
   });
 
@@ -106,7 +125,8 @@ export default function App() {
       if (event.key === 'Escape' && !isTypingTarget) {
         setFilters((current) => ({
           ...current,
-          category: 'All',
+          type: 'all',
+          category: 'Все',
           month: currentMonth,
         }));
       }
@@ -118,17 +138,18 @@ export default function App() {
 
   const categories = useMemo(() => {
     const values = new Set(expenses.map((expense) => expense.category));
-    return ['All', ...Array.from(values).sort((left, right) => left.localeCompare(right))];
+    return ['Все', ...Array.from(values).sort((left, right) => left.localeCompare(right))];
   }, [expenses]);
 
   const filteredExpenses = useMemo(() => {
     return expenses
       .filter((expense) => {
+        const matchesType = filters.type === 'all' || expense.type === filters.type;
         const matchesCategory =
-          filters.category === 'All' || expense.category === filters.category;
+          filters.category === 'Все' || expense.category === filters.category;
         const matchesMonth = !filters.month || expense.date.startsWith(filters.month);
 
-        return matchesCategory && matchesMonth;
+        return matchesType && matchesCategory && matchesMonth;
       })
       .sort((left, right) => right.date.localeCompare(left.date));
   }, [expenses, filters]);
@@ -141,17 +162,45 @@ export default function App() {
     const daysInMonth = monthBounds ? monthBounds.end.getDate() : now.getDate();
 
     const monthExpenses = expenses.filter((expense) => expense.date.startsWith(activeMonth));
-    const todayTotal = monthExpenses
-      .filter((expense) => expense.date === today)
-      .reduce((sum, expense) => sum + expense.amount, 0);
-    const monthTotal = monthExpenses.reduce((sum, expense) => sum + expense.amount, 0);
-    const avgDay = monthTotal / daysInMonth;
+    const todayEntries = expenses.filter((expense) => expense.date === today);
 
-    return {
-      today: formatMoney(todayTotal),
-      month: formatMoney(monthTotal),
-      avgDay: formatMoney(avgDay || 0),
-    };
+    const todayIncome = todayEntries
+      .filter((expense) => expense.type === 'income')
+      .reduce((sum, expense) => sum + expense.amount, 0);
+    const todayExpense = todayEntries
+      .filter((expense) => expense.type === 'expense')
+      .reduce((sum, expense) => sum + expense.amount, 0);
+    const monthIncome = monthExpenses
+      .filter((expense) => expense.type === 'income')
+      .reduce((sum, expense) => sum + expense.amount, 0);
+    const monthExpense = monthExpenses
+      .filter((expense) => expense.type === 'expense')
+      .reduce((sum, expense) => sum + expense.amount, 0);
+
+    const todayNet = todayIncome - todayExpense;
+    const monthNet = monthIncome - monthExpense;
+    const avgDay = monthNet / daysInMonth;
+
+    return [
+      {
+        key: 'today',
+        label: 'сегодня',
+        value: formatMoney(todayNet),
+        meta: `приход ${formatMoney(todayIncome)} / расход ${formatMoney(-todayExpense)}`,
+      },
+      {
+        key: 'month',
+        label: 'месяц',
+        value: formatMoney(monthNet),
+        meta: `приход ${formatMoney(monthIncome)} / расход ${formatMoney(-monthExpense)}`,
+      },
+      {
+        key: 'avgDay',
+        label: 'среднее / день',
+        value: formatMoney(avgDay || 0),
+        meta: `${daysInMonth} дн. в месяце`,
+      },
+    ];
   }, [expenses, filters.month]);
 
   function handleAddExpense(payload) {
