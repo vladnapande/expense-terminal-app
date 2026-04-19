@@ -172,6 +172,7 @@ export default function App() {
   const [filters, setFilters] = useState({
     type: 'all',
     category: 'Все',
+    query: '',
   });
   const [lastSavedAt, setLastSavedAt] = useState(() => new Date());
   const [dataMessage, setDataMessage] = useState('Локальное автосохранение активно.');
@@ -224,6 +225,7 @@ export default function App() {
         setFilters({
           type: 'all',
           category: 'Все',
+          query: '',
         });
         setSelectedMonth(getCurrentMonthValue());
       }
@@ -249,8 +251,13 @@ export default function App() {
         const matchesType = filters.type === 'all' || expense.type === filters.type;
         const matchesCategory =
           filters.category === 'Все' || expense.category === filters.category;
+        const normalizedQuery = filters.query.trim().toLowerCase();
+        const matchesQuery =
+          normalizedQuery === '' ||
+          expense.category.toLowerCase().includes(normalizedQuery) ||
+          expense.note.toLowerCase().includes(normalizedQuery);
 
-        return matchesType && matchesCategory;
+        return matchesType && matchesCategory && matchesQuery;
       })
       .sort((left, right) => right.date.localeCompare(left.date));
   }, [filters, monthEntries]);
@@ -326,6 +333,17 @@ export default function App() {
     setExpenses((current) => current.filter((expense) => expense.id !== expenseId));
   }
 
+  function handleUpdateExpense(expenseId, payload) {
+    const normalizedPayload = normalizeStoredExpense({
+      ...payload,
+      id: expenseId,
+    });
+
+    setExpenses((current) =>
+      current.map((expense) => (expense.id === expenseId ? normalizedPayload : expense)),
+    );
+  }
+
   function handleFilterChange(key, value) {
     setFilters((current) => ({
       ...current,
@@ -394,6 +412,7 @@ export default function App() {
             <ExpenseTable
               expenses={filteredExpenses}
               monthLabel={selectedMonthLabel}
+              onUpdate={handleUpdateExpense}
               onDelete={handleDeleteExpense}
             />
           </div>

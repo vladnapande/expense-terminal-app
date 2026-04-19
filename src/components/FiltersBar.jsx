@@ -12,7 +12,7 @@ export default function FiltersBar({
       <div className="border-b border-terminal-line px-4 py-2 text-[11px] uppercase tracking-[0.18em] text-terminal-muted/80">
         применяются внутри месяца: {selectedMonthLabel}
       </div>
-      <div className="grid gap-4 px-4 py-4 md:grid-cols-2">
+      <div className="grid gap-4 px-4 py-4 md:grid-cols-3">
         <label className="flex flex-col gap-2 text-xs uppercase tracking-[0.22em] text-terminal-muted">
           <span>тип</span>
           <select
@@ -38,6 +38,16 @@ export default function FiltersBar({
               </option>
             ))}
           </select>
+        </label>
+        <label className="flex flex-col gap-2 text-xs uppercase tracking-[0.22em] text-terminal-muted md:col-span-3">
+          <span>поиск</span>
+          <input
+            type="text"
+            value={filters.query}
+            onChange={(event) => onFilterChange('query', event.target.value)}
+            placeholder="категория или заметка"
+            className="h-11 border border-terminal-line bg-black/20 px-3 text-sm text-terminal-strong outline-none transition focus:border-terminal-text"
+          />
         </label>
       </div>
     </section>

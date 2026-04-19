@@ -34,7 +34,9 @@
 - фильтры внутри выбранного месяца:
   - по типу
   - по категории
+  - по текстовому поиску
 - таблица операций за выбранный месяц
+- inline-редактирование записи прямо в таблице
 - годовая сводка по выбранному году:
   - доходы по месяцам
   - расходы по месяцам
@@ -57,6 +59,8 @@
 - `Esc` сбрасывает фильтры и возвращает текущий месяц
 - при любом изменении записей срабатывает автосохранение в `localStorage`
 - в интерфейсе видно время последнего автосохранения
+- поиск работает по категории и заметке внутри текущего месяца
+- редактирование записи делается прямо в таблице без модальных окон
 - в форме видно:
   - какой месяц сейчас открыт
   - в какой месяц попадет новая запись
@@ -74,8 +78,8 @@
 - [src/App.jsx](/root/sandbox/expense-terminal-app/src/App.jsx) — основная логика, состояние, вычисления summary и year summary
 - [src/components/MonthNavigation.jsx](/root/sandbox/expense-terminal-app/src/components/MonthNavigation.jsx) — переключение между месяцами
 - [src/components/ExpenseForm.jsx](/root/sandbox/expense-terminal-app/src/components/ExpenseForm.jsx) — быстрый ввод операции
-- [src/components/FiltersBar.jsx](/root/sandbox/expense-terminal-app/src/components/FiltersBar.jsx) — фильтры внутри месяца
-- [src/components/ExpenseTable.jsx](/root/sandbox/expense-terminal-app/src/components/ExpenseTable.jsx) — журнал операций за выбранный месяц
+- [src/components/FiltersBar.jsx](/root/sandbox/expense-terminal-app/src/components/FiltersBar.jsx) — фильтры и поиск внутри месяца
+- [src/components/ExpenseTable.jsx](/root/sandbox/expense-terminal-app/src/components/ExpenseTable.jsx) — журнал операций и inline-редактирование
 - [src/components/SummaryPanel.jsx](/root/sandbox/expense-terminal-app/src/components/SummaryPanel.jsx) — краткая сводка по месяцу
 - [src/components/YearSummary.jsx](/root/sandbox/expense-terminal-app/src/components/YearSummary.jsx) — годовая табличная сводка
 - [src/components/DataControls.jsx](/root/sandbox/expense-terminal-app/src/components/DataControls.jsx) — экспорт, импорт и статус автосохранения
