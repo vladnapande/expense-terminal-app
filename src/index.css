@@ -1,0 +1,47 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+  font-family: 'JetBrains Mono', 'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace;
+  background: #050805;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: #050805;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  background: #050805;
+  color: #91f7a7;
+}
+
+body::selection {
+  background: rgba(145, 247, 167, 0.2);
+}
+
+input,
+select,
+button {
+  font: inherit;
+  border-radius: 0;
+}
+
+input[type='date']::-webkit-calendar-picker-indicator,
+input[type='month']::-webkit-calendar-picker-indicator {
+  opacity: 0.5;
+  filter: invert(79%) sepia(29%) saturate(341%) hue-rotate(79deg) brightness(101%) contrast(94%);
+}
+
+@layer base {
+  #root {
+    min-height: 100vh;
+  }
+}
